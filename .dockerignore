@@ -1,0 +1,10 @@
+.git
+.cache
+public
+node_modules
+**/http:
+**/.fetch-report.json
+**/.assets-report.json
+*.rb
+*.ts
+*.py

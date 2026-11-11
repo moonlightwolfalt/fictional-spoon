@@ -1,0 +1,28 @@
+server {
+    listen ${PORT};
+    server_name _;
+    root /usr/share/nginx/html;
+    index index.html;
+
+    # Archived clients reference assets by odd casing and ad scripts that no longer exist;
+    # serve what's there and 404 the rest without noise.
+    log_not_found off;
+
+    gzip on;
+    gzip_types text/css application/javascript application/json image/svg+xml text/plain;
+
+    # Era assets never change once archived.
+    location ~* \.(png|jpe?g|gif|svg|webp|ico|mp3|ogg|wav|woff2?|ttf)$ {
+        expires 30d;
+        add_header Cache-Control "public, max-age=2592000";
+        try_files $uri =404;
+    }
+
+    # The selector and its counts can change on every deploy.
+    location = /index.html { add_header Cache-Control "no-cache"; }
+    location = /eras-manifest.json { add_header Cache-Control "no-cache"; }
+
+    location / {
+        try_files $uri $uri/ =404;
+    }
+}
