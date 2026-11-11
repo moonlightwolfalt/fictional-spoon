@@ -19,6 +19,8 @@
 #   --refresh-index       re-download the Wayback CDX index instead of using .cache/
 #   --force               re-download files that already exist
 #   --dry-run             show what would be fetched
+#   --stats               print how many files Wayback holds per category and era, then exit
+#   --everything          give every era every archived image/sound, whatever its capture date
 #
 # How it decides what to fetch:
 #   1. Decode each era's client.js (the 2018–2020 clients hide strings as base64 in an
@@ -66,7 +68,7 @@ NO_EXPAND = %w[skins/ img/ audio/ skins/zombie/ skins/winter/ skins/santa/ skins
 # ───────────────────────────── options ─────────────────────────────
 
 opts = { eras: [], only: CATEGORIES, concurrency: 65, strict: false, probe: true,
-         refresh: false, force: false, dry: false }
+         refresh: false, force: false, dry: false, everything: false, stats: false }
 OptionParser.new do |o|
   o.banner = "Usage: ruby fetch_era_assets.rb [options]"
   o.on("--era YEAR") { |v| opts[:eras] << v }
@@ -77,6 +79,8 @@ OptionParser.new do |o|
   o.on("--refresh-index") { opts[:refresh] = true }
   o.on("--force") { opts[:force] = true }
   o.on("--dry-run") { opts[:dry] = true }
+  o.on("--everything") { opts[:everything] = true }
+  o.on("--stats") { opts[:stats] = true }
   o.on("-h", "--help") { puts File.read(__FILE__)[/^# fetch_era_assets.*?(?=^require)/m].gsub(/^# ?/, ""); exit }
 end.parse!
 
@@ -302,10 +306,12 @@ end
 
 # ───────────────────────────── CDX index ─────────────────────────────
 
-# { rel => [[timestamp, original], ...] } for every 200 capture of mope.io, all time.
+# { rel => [[timestamp, original, main], ...] } for every 200 capture of mope.io and its
+# subdomains (beta.mope.io etc. served the same asset folders), all time. main is 1 for
+# mope.io / www.mope.io captures and 0 for other subdomains.
 def cdx_index(opts)
   FileUtils.mkdir_p(CACHE)
-  cache = File.join(CACHE, "cdx-all-time.json")
+  cache = File.join(CACHE, "cdx-all-time-v2.json")
   if !opts[:refresh] && File.exist?(cache)
     data = JSON.parse(File.read(cache))
     log "📇 CDX index: cached (#{data.size} paths) — pass --refresh-index to rebuild"
@@ -313,8 +319,8 @@ def cdx_index(opts)
   end
 
   rows = Queue.new
-  %w[mope.io/ www.mope.io/].each do |prefix|
-    base = { "url" => prefix, "matchType" => "prefix", "output" => "json",
+  %w[mope.io].each do |prefix|
+    base = { "url" => prefix, "matchType" => "domain", "output" => "json",
              "fl" => "original,timestamp,digest", "filter" => "statuscode:200" }
     pages_res = http_get("#{WAYBACK}/cdx/search/cdx?#{URI.encode_www_form(base.merge('showNumPages' => 'true'))}")
     pages = pages_res && pages_res[0] == 200 ? pages_res[1].to_i : 0
@@ -338,8 +344,15 @@ def cdx_index(opts)
   index = Hash.new { |h, k| h[k] = {} }
   until rows.empty?
     original, ts, digest = rows.pop
-    rel = normalize(original) or next
-    index[rel][digest || ts] ||= [ts, original]
+    m = original.match(%r{\A(?:https?:)?//([^/?#]+)(/[^#]*)?}i) || original.match(%r{\A([^/?#]+)(/[^#]*)?})
+    next unless m
+    host = m[1].downcase.sub(/:\d+\z/, "").chomp(".")
+    next unless host == "mope.io" || host.end_with?(".mope.io")
+    rel = normalize(m[2] || "/") or next
+    main = HOST_RE.match?(host) ? 1 : 0
+    # Subdomains only count for real assets, not their own pages/API responses.
+    next if main.zero? && !(MEDIA_EXT + %w[.css .js]).include?(File.extname(rel).downcase)
+    index[rel][digest || ts] ||= [ts, original, main]
   end
   data = index.transform_values { |h| h.values.sort_by(&:first) }
   abort "CDX index came back empty — is web.archive.org reachable?" if data.empty?
@@ -350,6 +363,9 @@ end
 
 # Newest capture <= era ts, else the earliest after it (unless strict).
 def pick_capture(caps, ts, strict)
+  # Prefer the main site's captures; fall back to subdomains (beta.mope.io, …).
+  main = caps.select { |c| c[2].to_i == 1 }
+  caps = main unless main.empty?
   before = caps.select { |c| c[0] <= ts }
   return before.last unless before.empty?
   strict ? nil : caps.first
@@ -396,7 +412,7 @@ def plan_era(year, index, opts)
   # client builds from server data instead of naming them.
   index.each do |k, caps|
     next if wanted.key?(k) || !MEDIA_EXT.include?(File.extname(k).downcase)
-    wanted[k] = :cdx if caps.first[0] <= cfg[:ts]
+    wanted[k] = :cdx if opts[:everything] || caps.first[0] <= cfg[:ts]
   end
 
   # Everything archived under a folder the client loads from (variants, frames, parts).
@@ -499,6 +515,22 @@ end
 # ───────────────────────────── main ─────────────────────────────
 
 index = cdx_index(opts)
+
+if opts[:stats]
+  # How much Wayback really holds, per category: all time, and captured by each era date.
+  cols = ["all time"] + ERAS.keys
+  counts = Hash.new { |h, k| h[k] = Hash.new(0) }
+  index.each do |rel, caps|
+    c = category(rel)
+    counts[c]["all time"] += 1
+    ERAS.each { |y, cfg| counts[c][y] += 1 if caps.any? { |cap| cap[0] <= cfg[:ts] } }
+  end
+  log "\n#{'category'.ljust(10)}#{cols.map { |c| c.rjust(9) }.join}"
+  CATEGORIES.each { |c| log "#{c.ljust(10)}#{cols.map { |col| counts[c][col].to_s.rjust(9) }.join}" }
+  log "#{'total'.ljust(10)}#{cols.map { |col| counts.values.sum { |h| h[col] }.to_s.rjust(9) }.join}"
+  log "\n(columns per era = files with a capture on/before that era's date; --everything ignores dates)"
+  exit
+end
 summary = []
 
 opts[:eras].each do |year|
