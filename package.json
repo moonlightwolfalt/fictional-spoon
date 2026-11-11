@@ -1,0 +1,9 @@
+{
+  "name": "era-selector",
+  "private": true,
+  "description": "Era selector for the 2017-2020 snapshots",
+  "scripts": {
+    "build": "node scripts/build-site.mjs"
+  },
+  "engines": { "node": ">=18" }
+}
