@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<style type="text/css">
+    body {
+        background-color: #3FBA54
+    }
+</style>
+<head>
+<title>mope.io</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<meta name="description" content="Survive and climb the food chain in mopeio, the hit browser game!">
+<meta name="keywords" content="mope, mope.io, mopeio,io games, .io, spaceships, browser game, html game, html5 game, agario, diepio, flash game, space, multiplayer">
+<meta http-equiv="content-type" content="text/html; charset=utf-8">
+<meta name="google-site-verification" content="HjdDaF_uw12IxXRm3hOS03tqv9QW8Lj5b74mlJGsRz0" />
+<meta property="og:image" content="http://mope.io/img/share_banner.jpg">
+<meta property="og:image:type" content="image/jpg">
+<meta property="og:image:width" content="1263">
+<meta property="og:image:height" content="707">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="robots" content="index, follow">
+<meta name="revisit-after" content="3 days">
+<meta name="googlebot" content="all">
+<meta name="twitter:card" content="summary_large_image">
+
+<link rel="stylesheet" href="main.css" />
+<link rel="shortcut icon" type="image/x-icon" href="favicon.ico" />
+
+
+<script>
+        var script = document.createElement('script');
+        var tstamp = new Date();
+        script.id = 'factorem';
+        script.src = '//cdm.cursecdn.com/js/mope/cdmfactorem_min.js?sec=home&misc=' + tstamp.getTime();
+        script.async = false;
+        script.type = 'text/javascript';
+        document.head.appendChild(script);
+    </script>
+</head>
+<body>
+<div id="gameAreaWrapper">
+<input id="chatinput" type="text" class="chat-input" placeholder="Chat here..." maxlength="35" />
+<canvas tabindex="1" id="gCanvas"></canvas>
+</div>
+<div id="connecting">
+<p id="desc">Connecting...</p>
+<div class="spinner">
+<div class="bounce1"></div>
+<div class="bounce2"></div>
+<div class="bounce3"></div>
+</div>
+</div>
+
+<div id="preroll" class="vidAd"></div>
+
+
+<div id="startMenuWrapper">
+<div id="startMenu">
+<img id="logo" src="img/logo.png" width="350px" height="178px" />
+<div id="onconnectDiv" style="visibility:hidden;">
+<br />
+
+<div id="nickInputContainer" style="display: block;">
+<input id="nickInput" autofocus placeholder="Your name" maxlength="15" style="width: 100%; height: 40px; line-height: 36px;">
+</div>
+<button id="settingsButton" class="button" type="submit" style="background-color:transparent; border-color:transparent;">
+<img src="img/settings.png" width=30 height=30/>
+</button>
+<button id="button_mute" class="button" type="submit" style="background-color:transparent; border-color:transparent;">
+<img id="button_mute_img" src="img/sound_on.png" width=30 height=30/>
+</button>
+<a>
+<button id="startButton">Play</button>
+</a>
+<p id="spawnXpLabel">
+</p>
+</div>
+<div id="optionsDiv">
+<button id="closeBut" type="submit" class="button" style="background-color:transparent; border-color:transparent;">
+<img src="img/x.png" width=35 height=35/>
+</button>
+<h3>Region/Server:</h3>
+<select id="regionSelect">
+<option>
+Finding Best Region...
+</option>
+</select>
+<select id="serverSelect">
+<option>
+Finding Server...
+</option>
+</select>
+<h3>Options:</h3>
+<div>
+<label><input type="checkbox" id="options_noImages"><span style="color: black;">No Animal images </span></label>
+<label><input type="checkbox" id="options_noNames"><span style="color: black;">No Names & Chat </span></label>
+<label><input type="checkbox" id="options_lowGraphics"><span style="color: black;">Use Low graphics </span></label>
+<label><input type="checkbox" id="options_noJoystick"><span style="color: #194614;">No Joystick (mobile)</span></label>
+<label><input type="checkbox" id="options_leftHanded"><span style="color: #194614;">LEFT-handed Joystick</span></label>
+</div>
+</div>
+
+<div id="adsenseAd">
+<div id='cdm-zone-02'></div>
+</div>
+
+
+</div>
+<div id="howToPlayDiv">
+
+<h2>HOW TO PLAY</h2>
+<ul>
+<li>
+Click (to run) and 'W' (to swim/use ability)
+</li>
+<li>
+Press ENTER in-game to chat
+</li>
+<li>Eat players/food outlined LIGHT-GREEN!</li>
+<li>Avoid players outlined RED (They can eat you)!</li>
+</ul>
+</div>
+<div id="updatesDiv">
+<h2>Update(March 24) Rapid Rivers!</h2>
+<img src="./img/promoimg2.png" width="100%" height="auto" />
+<ul>
+<li>-NEW: Rivers flow between oceans in mope.io!</li>
+<li>-Certain animals are unaffected by the river current: Croc, hippo</li>
+<li>-NEW: abilities can push/damage food (eg. mushroom bushes)! Plus, kraken sucks up all food!</li>
+<li>-NEW: Snails have come alive (first basic AI)! They love to eat plankton, hide in shells! (And bite your tail!)</li>
+<li>-orca wave ability buffed (longer stun, more damage)</li>
+<li>-Lots of tweaks to food concentration, respawn rates</li>
+</ul>
+<h2>Tell us your ideas/bugs on reddit:<br />
+<a href="https://goo.gl/aoECBh" target="_blank">REDDIT PAGE</a>
+</h2>
+<a href="http://www.mope.io/updates.txt" target="_blank">CHANGELOG</a>-
+<a href="https://goo.gl/3ViH9K" target="_blank">IO GAMES</a>
+</div>
+<div id="rightSide">
+<div id="partyLink">
+<a class="partyLinkBut" id="partyLinkOpenBut">Make Party</a>
+<div id="partyLinkClicked" style="display:none;">
+<p style="">
+Your friends can join your exact game with this party link:
+</p>
+<input type="text" value="...Generating link..." readonly="" id="partyLinkTxt" style="cursor: text; width: 100px; float: left;">
+<a href="#" class="partyLinkBut" id="partyLinkCopyBut">Copy</a>
+</div>
+</div>
+ <div id="shareDiv">
+</div>
+<div id="appsDiv">
+<a id="appAdIOS" href="https://goo.gl/ofAUPJ" target="_blank">
+<img src="./img/appAd_ios.png" width="132" height="82" alt="GET THE IOS APP!" />
+</a>
+<a id="appAdAndroid" href="https://goo.gl/i3xQWQ" target="_blank">
+<img src="./img/appAd_and.png" width="132" height="52" alt="GET THE Android APP!" />
+</a>
+</div>
+</div>
+</div>
+
+<script src="client.js"></script>
+
+
+
+<div id='cdm-zone-end'></div>
+</body>
+
+
+</html>

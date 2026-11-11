@@ -236,6 +236,10 @@
       ctx.fillStyle = "rgba(244,241,230,.55)";
       ctx.font = "500 12px system-ui, sans-serif";
       ctx.fillText(`${fmtNum(info.total)} files \u00b7 ${fmtBytes(info.bytes)}`, gx, cyp + ch - 34);
+      if (info.borrowed) {
+        ctx.fillStyle = `hsla(${era.hue},60%,72%,.85)`;
+        ctx.fillText(`${fmtNum(info.borrowed)} borrowed from other eras`, gx, cyp + ch - 16);
+      }
     } else {
       ctx.fillStyle = "rgba(244,241,230,.5)";
       ctx.font = "500 13px system-ui, sans-serif";

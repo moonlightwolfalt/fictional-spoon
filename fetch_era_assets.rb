@@ -380,7 +380,14 @@ def local_path(era_dir, rel)
   File.directory?(p) ? File.join(p, "index.html") : p
 end
 
+# Files merge_eras.rb copied in from another era: present, but not this era's own copy.
+BORROWED = Hash.new do |h, era_dir|
+  f = File.join(era_dir, ".merged-from.json")
+  h[era_dir] = File.exist?(f) ? (JSON.parse(File.read(f)) rescue {}) : {}
+end
+
 def have?(era_dir, rel)
+  return false if BORROWED[era_dir].key?(rel) # fetch the era's real version over it
   p = local_path(era_dir, rel)
   File.file?(p) && File.size(p).positive?
 end
@@ -498,6 +505,7 @@ def run_jobs(plan, opts)
     got = final[%r{/web/(\d{14})}, 1]
     late = got && got > plan[:ts]
     m.synchronize do
+      BORROWED[era_dir].delete(rel)
       report[job[:cat]]["fetched"] += 1
       later << "#{rel} @ #{got}" if late
     end
@@ -511,6 +519,11 @@ def run_jobs(plan, opts)
     "not_archived_before_era" => plan[:strict_skipped].sort,
   }
   File.write(File.join(era_dir, ".assets-report.json"), JSON.pretty_generate(out))
+  # Real downloads replaced some borrowed copies: stop tracking those.
+  rec_file = File.join(era_dir, ".merged-from.json")
+  if File.exist?(rec_file)
+    BORROWED[era_dir].empty? ? File.delete(rec_file) : File.write(rec_file, JSON.pretty_generate(BORROWED[era_dir]) + "\n")
+  end
   out
 end
 
@@ -522,6 +535,7 @@ def write_manifest
     dir = File.join(ROOT, cfg[:folder])
     counts = CATEGORIES.to_h { |c| [c, 0] }
     bytes = 0
+    borrowed = BORROWED[dir].size
     if File.directory?(dir)
       Dir.glob("**/*", File::FNM_DOTMATCH, base: dir).each do |rel|
         next if rel.start_with?("http:") || rel.split("/").any? { |seg| seg.start_with?(".") }
@@ -532,7 +546,7 @@ def write_manifest
       end
     end
     { "year" => year, "folder" => cfg[:folder], "counts" => counts,
-      "total" => counts.values.sum, "bytes" => bytes }
+      "total" => counts.values.sum, "bytes" => bytes, "borrowed" => borrowed }
   end
   out = { "generated" => Time.now.utc.strftime("%Y-%m-%dT%H:%M:%SZ"), "categories" => CATEGORIES, "eras" => eras }
   File.write(File.join(ROOT, "eras-manifest.json"), JSON.pretty_generate(out) + "\n")
