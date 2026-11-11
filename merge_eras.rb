@@ -8,8 +8,10 @@
 #   ruby merge_eras.rb --era 2020   # only fill 2020 (repeatable)
 #   ruby merge_eras.rb --undo       # remove every file this script copied in (if unchanged)
 #
-# Each era keeps its own files. For every file some era has and another lacks, the copy
-# comes from the era closest in date (ties go to the older era, so nothing looks newer
+# Each era keeps its own files. A missing asset is first taken from the era's own test
+# builds (LIVETEST, LIVETEST541, oldmope: same site, same capture date, same art). After
+# that, for every file some era has and another lacks, the copy comes from the era closest
+# in date (ties go to the older era, so nothing looks newer
 # than it should). What was copied, and from where, is recorded in <era>/.merged-from.json.
 #
 # fetch_era_assets.rb treats merged-in files as still missing, so a real download from the
@@ -19,6 +21,7 @@ require "json"
 require "fileutils"
 require "digest"
 require "optparse"
+require "set"
 
 ROOT = File.expand_path(__dir__)
 ERAS = {
@@ -29,6 +32,9 @@ ERAS = {
 }.freeze
 RECORD = ".merged-from.json"
 # Each era's own entry points stay its own; editor/OS junk isn't worth spreading.
+# Test builds of the site that each era carries, in order of preference.
+SIBLING_DIRS = %w[LIVETEST LIVETEST541 oldmope].freeze
+ASSET_ROOTS  = %w[img/ skins/ audio/].freeze
 NEVER_COPY = %w[index.html client.js updates.txt robots.txt ads.txt].freeze
 SKIP_EXT   = %w[.pdn .psd .ds_store].freeze
 
@@ -65,7 +71,9 @@ def own_files(year)
   borrowed = load_record(year)
   Dir.glob("**/*", base: dir).each_with_object({}) do |rel, h|
     next if rel.start_with?("http:") || rel.split("/").any? { |s| s.start_with?(".") }
-    next if borrowed.key?(rel)
+    # Files filled from this era's own test builds are this era's art; only files borrowed
+    # from another era are excluded.
+    next if borrowed.key?(rel) && !borrowed[rel]["from"].to_s.start_with?("#{year}/")
     path = File.join(dir, rel)
     next unless File.file?(path) && File.size(path).positive?
     h[rel] = path
@@ -115,6 +123,40 @@ end
 
 # ───────────────────────────── merge ─────────────────────────────
 
+# Pass 1: fill an era's main folders from its own test builds.
+opts[:eras].each do |year|
+  dir = era_dir(year)
+  rec = load_record(year)
+  copied = Hash.new(0)
+  planned = Set.new
+  SIBLING_DIRS.each do |sub|
+    base = File.join(dir, sub)
+    next unless File.directory?(base)
+    Dir.glob("**/*", base: base).sort.each do |rel|
+      next unless ASSET_ROOTS.any? { |r| rel.start_with?(r) }
+      next if SKIP_EXT.include?(File.extname(rel).downcase) || rel.split("/").any? { |p| p.start_with?(".") }
+      src = File.join(base, rel)
+      next unless File.file?(src) && File.size(src).positive?
+      dest = File.join(dir, rel)
+      next if File.exist?(dest) || File.file?(File.dirname(dest)) || planned.include?(rel)
+      next if directory_listing?(src)
+      planned << rel
+      copied[sub] += 1
+      next if opts[:dry] && (puts "  #{year} ← #{year}/#{sub}  #{rel}"; true)
+      FileUtils.mkdir_p(File.dirname(dest))
+      FileUtils.cp(src, dest)
+      # If the test-build file was itself borrowed from another era, keep that provenance.
+      origin = rec["#{sub}/#{rel}"]&.dig("from") || "#{year}/#{sub}"
+      rec[rel] = { "from" => origin, "sha1" => Digest::SHA1.file(dest).hexdigest }
+    end
+  end
+  save_record(year, rec) unless opts[:dry]
+  total = copied.values.sum
+  puts "#{year}: #{opts[:dry] ? 'would copy' : 'copied'} #{total} file(s) from its own test builds" \
+       "#{total.positive? ? " (#{copied.map { |k, v| "#{v} from #{k}" }.join(', ')})" : ''}"
+end
+
+# Pass 2: fill from other eras.
 owned = ERAS.keys.to_h { |y| [y, own_files(y)] }
 all_rels = owned.values.flat_map(&:keys).uniq
 

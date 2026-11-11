@@ -8,7 +8,7 @@
     "sha1": "822ab9c9f5a56e70353a7ee0828f2f7bab0c6f72"
   },
   "audio/click.mp3": {
-    "from": "2020",
+    "from": "2019/LIVETEST",
     "sha1": "f7a6385fe5a595f2e8287c2d06f1d14f7d455576"
   },
   "audio/music_game.mp3": {
@@ -32,8 +32,8 @@
     "sha1": "95e3b2f5a66a5303db76b4d53eb3d97a05b383bc"
   },
   "img/firetornado.png": {
-    "from": "2018",
-    "sha1": "a1647fd9403caa21e23ce8f859ab3ad65acfe99c"
+    "from": "2019/LIVETEST541",
+    "sha1": "87ca204b735e3de86fbf10e59123e5d14425e26f"
   },
   "img/healingStone.png": {
     "from": "2018",
@@ -46,6 +46,22 @@
   "img/honeycomb.png": {
     "from": "2018",
     "sha1": "8e1e2d5755bdb7c96173604fe1e7e2ddff47c67d"
+  },
+  "img/logo.png": {
+    "from": "2019/LIVETEST",
+    "sha1": "7566ec2eed82c00d214fc5d56559327b7882ceb7"
+  },
+  "img/moomoo_promo.png": {
+    "from": "2019/LIVETEST541",
+    "sha1": "edbb62ab7cda3307483944eddc559674fe5381c2"
+  },
+  "img/promoimg2.png": {
+    "from": "2019/LIVETEST",
+    "sha1": "8eb035bd168964501fa417e5b7562cd2846a3f93"
+  },
+  "img/settings.png": {
+    "from": "2019/LIVETEST",
+    "sha1": "950a6b1667e0980914cb9e08f07da83ccfe7b215"
   },
   "main.css": {
     "from": "2017",

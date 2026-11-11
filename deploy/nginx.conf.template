@@ -1,3 +1,10 @@
+# Which era folder a request came from, taken from the page (or stylesheet) that asked for
+# it: https://host/mope_fixed_20191029/index.html -> mope_fixed_20191029.
+map $http_referer $era_from_referer {
+    "~/(?<era_dir>mope_fixed_[0-9]{8})/" $era_dir;
+    default "";
+}
+
 server {
     listen ${PORT};
     server_name _;
@@ -15,7 +22,7 @@ server {
     location ~* \.(png|jpe?g|gif|svg|webp|ico|mp3|ogg|wav|woff2?|ttf)$ {
         expires 30d;
         add_header Cache-Control "public, max-age=2592000";
-        try_files $uri =404;
+        try_files $uri @era_root;
     }
 
     # The selector and its counts can change on every deploy.
@@ -23,6 +30,15 @@ server {
     location = /eras-manifest.json { add_header Cache-Control "no-cache"; }
 
     location / {
-        try_files $uri $uri/ =404;
+        try_files $uri $uri/ @era_root;
+    }
+
+    # The archived pages were made to sit at the site root, so a few ask for
+    # "/adblockdet/ads.js" and the like. When such a root path is missing, serve it from the
+    # folder of the era that asked for it.
+    location @era_root {
+        if ($uri ~ "^/mope_fixed_") { return 404; }
+        if ($era_from_referer = "") { return 404; }
+        rewrite ^ /$era_from_referer$uri last;
     }
 }
