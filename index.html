@@ -16,15 +16,36 @@
     border:1px solid rgba(255,255,255,.25); background:rgba(14,26,18,.85); color:var(--fg);
     cursor:pointer; text-decoration:none; backdrop-filter: blur(4px); }
   #bar button:hover, #bar a:hover { background:rgba(40,70,48,.95); }
+  #bar .status { font:600 12px system-ui, sans-serif; padding:7px 10px; border-radius:8px;
+    background:rgba(120,40,30,.85); color:#ffe3dc; border:1px solid rgba(255,190,170,.35); white-space:nowrap; }
+  #offline { position:fixed; left:50%; bottom:16px; transform:translateX(-50%); z-index:11;
+    width:min(520px, calc(100% - 32px)); box-sizing:border-box; display:flex; gap:12px; align-items:flex-start;
+    padding:14px 16px; border-radius:12px; background:rgba(20,16,14,.92); color:var(--fg);
+    border:1px solid rgba(255,190,170,.35); box-shadow:0 10px 30px rgba(0,0,0,.4);
+    font:400 14px/1.45 system-ui, sans-serif; backdrop-filter: blur(6px); }
+  #offline[hidden] { display:none; }
+  #offline strong { display:block; font-weight:700; margin-bottom:2px; color:#ffd2c6; }
+  #offline button { flex:none; font:600 13px system-ui, sans-serif; padding:7px 12px; border-radius:8px;
+    border:1px solid rgba(255,255,255,.25); background:rgba(255,255,255,.08); color:var(--fg); cursor:pointer; }
+  @media (max-width: 480px) { #bar .status { display:none; } }
 </style>
 </head>
 <body>
-<canvas id="selector" aria-label="Era selector: use arrow keys or click a year, Enter to play"></canvas>
+<canvas id="selector" aria-label="Era selector: use arrow keys or click a year, Enter to open"></canvas>
 
 <div id="player">
   <div id="bar">
     <button id="back" type="button">&larr; Eras</button>
     <a id="newtab" target="_blank" rel="noopener">Open in new tab</a>
+    <span class="status" role="status">Servers offline &middot; menus only</span>
+  </div>
+  <div id="offline" role="alert" hidden>
+    <div>
+      <strong>Game servers are offline</strong>
+      mope.io's original servers shut down, so this era will stay on &ldquo;Connecting&hellip;&rdquo;
+      and matches can't start. You can still look around its menus.
+    </div>
+    <button id="offline-ok" type="button">Got it</button>
   </div>
   <iframe id="frame" title="Era client" allow="autoplay; fullscreen"></iframe>
 </div>
@@ -147,7 +168,24 @@
     ctx.fillText("Choose your era", W / 2, H * 0.14);
     ctx.font = `500 ${small ? 13 : 15}px system-ui, sans-serif`;
     ctx.fillStyle = "rgba(244,241,230,.65)";
-    ctx.fillText("← → to pick  ·  Enter to play", W / 2, H * 0.14 + (small ? 24 : 32));
+    ctx.fillText("← → to pick  ·  Enter to open", W / 2, H * 0.14 + (small ? 24 : 32));
+
+    // Offline notice pill
+    {
+      const msg = small ? "Game servers offline · menus only" : "Game servers are offline · you can browse menus, not play matches";
+      ctx.font = `600 ${small ? 12 : 13}px system-ui, sans-serif`;
+      const tw = ctx.measureText(msg).width, ph = small ? 26 : 28, pw = tw + 34;
+      const py = H * 0.14 + (small ? 40 : 52);
+      ctx.fillStyle = "rgba(150,50,36,.55)";
+      roundRect(W / 2 - pw / 2, py, pw, ph, ph / 2); ctx.fill();
+      ctx.strokeStyle = "rgba(255,190,170,.4)"; ctx.lineWidth = 1;
+      roundRect(W / 2 - pw / 2, py, pw, ph, ph / 2); ctx.stroke();
+      ctx.fillStyle = "#ff8f73";
+      ctx.beginPath(); ctx.arc(W / 2 - pw / 2 + 14, py + ph / 2, 3.5, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "#ffe3dc"; ctx.textBaseline = "middle";
+      ctx.fillText(msg, W / 2 + 6, py + ph / 2 + 1);
+      ctx.textBaseline = "alphabetic";
+    }
 
     // Timeline
     const pad = Math.max(40, W * 0.12);
@@ -247,7 +285,7 @@
         : "No asset counts yet. Run: ruby fetch_era_assets.rb --manifest", gx, gy + 10, gw, 18);
     }
 
-    // Play button
+    // Open button
     const bw = 150, bh = 44, bx = cxp + cw - bw - 20, by = cyp + ch - bh - 18;
     const pulse = launching ? 1 : 1 + Math.sin(t * 4) * 0.03;
     ctx.save();
@@ -256,7 +294,7 @@
     roundRect(-bw / 2, -bh / 2, bw, bh, 12); ctx.fill();
     ctx.fillStyle = "#fff"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
     ctx.font = "800 17px system-ui, sans-serif";
-    ctx.fillText("▶  Play " + era.year, 0, 1);
+    ctx.fillText("▶  Open " + era.year, 0, 1);
     ctx.restore();
     ctx.textBaseline = "alphabetic";
     playBtn = { x: bx, y: by + bob, w: bw, h: bh };
@@ -288,6 +326,9 @@
     player.style.display = "block";
     canvas.style.display = "none";
     try { history.replaceState(null, "", "#" + ERAS[i].year); } catch (_) {}
+    let seen = false;
+    try { seen = sessionStorage.getItem("offline-notice-seen") === "1"; } catch (_) {}
+    offline.hidden = seen;
     frame.focus();
   }
 
@@ -299,6 +340,12 @@
     requestAnimationFrame(draw);
   }
   document.getElementById("back").addEventListener("click", closeEra);
+  const offline = document.getElementById("offline");
+  document.getElementById("offline-ok").addEventListener("click", () => {
+    offline.hidden = true;
+    try { sessionStorage.setItem("offline-notice-seen", "1"); } catch (_) {}
+    frame.focus();
+  });
 
   function hit(mx, my) {
     if (playBtn && mx >= playBtn.x && mx <= playBtn.x + playBtn.w && my >= playBtn.y && my <= playBtn.y + playBtn.h) return "play";
