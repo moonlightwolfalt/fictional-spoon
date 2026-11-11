@@ -1,0 +1,74 @@
+{
+  "generated": "2026-11-11T15:01:33Z",
+  "categories": [
+    "animals",
+    "skins",
+    "abilities",
+    "modes",
+    "objects",
+    "audio",
+    "ui"
+  ],
+  "eras": [
+    {
+      "year": "2017",
+      "folder": "mope_fixed_20170704",
+      "counts": {
+        "animals": 52,
+        "skins": 26,
+        "abilities": 0,
+        "modes": 1,
+        "objects": 1,
+        "audio": 1,
+        "ui": 9
+      },
+      "total": 90,
+      "bytes": 1016632
+    },
+    {
+      "year": "2018",
+      "folder": "mope_fixed_20181111",
+      "counts": {
+        "animals": 1,
+        "skins": 2,
+        "abilities": 0,
+        "modes": 0,
+        "objects": 14,
+        "audio": 0,
+        "ui": 23
+      },
+      "total": 40,
+      "bytes": 1057133
+    },
+    {
+      "year": "2019",
+      "folder": "mope_fixed_20191029",
+      "counts": {
+        "animals": 51,
+        "skins": 58,
+        "abilities": 20,
+        "modes": 5,
+        "objects": 76,
+        "audio": 2,
+        "ui": 142
+      },
+      "total": 354,
+      "bytes": 5260306
+    },
+    {
+      "year": "2020",
+      "folder": "mope_fixed_20200321",
+      "counts": {
+        "animals": 0,
+        "skins": 0,
+        "abilities": 0,
+        "modes": 0,
+        "objects": 0,
+        "audio": 6,
+        "ui": 4
+      },
+      "total": 10,
+      "bytes": 2424096
+    }
+  ]
+}

@@ -50,6 +50,27 @@
   let t = 0;
   let launching = null;        // { idx, start }
   let nodes = [];              // hit areas
+  let manifest = null;         // eras-manifest.json (asset counts per era), if present
+  let manifestState = "loading";
+  const CAT_LABELS = { animals: "Animals", skins: "Skins", abilities: "Abilities", modes: "Modes",
+                       objects: "Objects", audio: "Audio", ui: "Pages" };
+
+  fetch("eras-manifest.json", { cache: "no-store" })
+    .then(r => (r.ok ? r.json() : Promise.reject()))
+    .then(m => {
+      manifest = {
+        cats: m.categories,
+        byYear: Object.fromEntries(m.eras.map(e => [String(e.year), e])),
+        // Largest count per category across eras, so the bars compare eras.
+        max: Object.fromEntries(m.categories.map(c => [c, Math.max(1, ...m.eras.map(e => e.counts[c] || 0))])),
+        generated: m.generated,
+      };
+      manifestState = "ok";
+    })
+    .catch(() => { manifestState = "missing"; });
+
+  const fmtNum = n => n.toLocaleString("en-US");
+  const fmtBytes = b => b >= 1e9 ? (b / 1e9).toFixed(1) + " GB" : b >= 1e6 ? (b / 1e6).toFixed(1) + " MB" : Math.round(b / 1e3) + " KB";
   let playBtn = null;
 
   // Floating blobs in the background
@@ -156,13 +177,19 @@
       ctx.fillStyle = `rgba(244,241,230,${0.55 + near * 0.45})`;
       ctx.font = `${near > 0.5 ? 800 : 600} ${small ? 15 : 18 + near * 6}px system-ui, sans-serif`;
       ctx.fillText(String(era.year), x, lineY + (small ? 44 : 54));
+      const info = manifest && manifest.byYear[era.year];
+      if (info) {
+        ctx.font = `500 ${small ? 11 : 12}px system-ui, sans-serif`;
+        ctx.fillStyle = `rgba(244,241,230,${0.4 + near * 0.35})`;
+        ctx.fillText(fmtNum(info.total) + " files", x, lineY + (small ? 62 : 76));
+      }
       nodes.push({ i, x: x - 40, y: lineY - 40, w: 80, h: 110 });
     });
 
     // Era card
     const era = ERAS[selected];
-    const cw = Math.min(520, W - 32), ch = small ? 210 : 230;
-    const cxp = (W - cw) / 2, cyp = H * 0.52;
+    const cw = Math.min(560, W - 32), ch = small ? 330 : 318;
+    const cxp = (W - cw) / 2, cyp = Math.max(lineY + 96, Math.min(H * 0.5, H - ch - 16));
     const bob = Math.sin(t * 1.6) * 3;
     ctx.save();
     ctx.translate(0, bob);
@@ -183,6 +210,38 @@
     ctx.fillStyle = "#f4f1e6";
     ctx.font = "400 16px system-ui, sans-serif";
     wrapText(era.blurb, cxp + 24, cyp + (small ? 108 : 124), cw - 48, 22);
+
+    // Asset counts per category
+    const gx = cxp + 24, gy = cyp + (small ? 168 : 160), gw = cw - 48;
+    const info = manifest && manifest.byYear[era.year];
+    if (info) {
+      const cols = 4, cellW = gw / cols, cellH = 46;
+      manifest.cats.forEach((c, k) => {
+        const x = gx + (k % cols) * cellW, y = gy + Math.floor(k / cols) * cellH;
+        const n = info.counts[c] || 0;
+        ctx.fillStyle = "rgba(244,241,230,.6)";
+        ctx.font = `600 ${small ? 10 : 11}px system-ui, sans-serif`;
+        ctx.fillText((CAT_LABELS[c] || c).toUpperCase(), x, y);
+        ctx.fillStyle = n ? "#f4f1e6" : "rgba(244,241,230,.35)";
+        ctx.font = `800 ${small ? 16 : 18}px system-ui, sans-serif`;
+        ctx.fillText(fmtNum(n), x, y + 20);
+        const bw = cellW - 14, frac = n / manifest.max[c];
+        ctx.fillStyle = "rgba(244,241,230,.12)";
+        roundRect(x, y + 27, bw, 4, 2); ctx.fill();
+        if (n) {
+          ctx.fillStyle = `hsl(${era.hue},60%,62%)`;
+          roundRect(x, y + 27, Math.max(4, bw * frac), 4, 2); ctx.fill();
+        }
+      });
+      ctx.fillStyle = "rgba(244,241,230,.55)";
+      ctx.font = "500 12px system-ui, sans-serif";
+      ctx.fillText(`${fmtNum(info.total)} files \u00b7 ${fmtBytes(info.bytes)}`, gx, cyp + ch - 34);
+    } else {
+      ctx.fillStyle = "rgba(244,241,230,.5)";
+      ctx.font = "500 13px system-ui, sans-serif";
+      wrapText(manifestState === "loading" ? "Counting assets\u2026"
+        : "No asset counts yet. Run: ruby fetch_era_assets.rb --manifest", gx, gy + 10, gw, 18);
+    }
 
     // Play button
     const bw = 150, bh = 44, bx = cxp + cw - bw - 20, by = cyp + ch - bh - 18;

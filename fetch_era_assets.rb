@@ -21,6 +21,7 @@
 #   --dry-run             show what would be fetched
 #   --stats               print how many files Wayback holds per category and era, then exit
 #   --everything          give every era every archived image/sound, whatever its capture date
+#   --manifest            only rewrite eras-manifest.json (local asset counts for the era selector)
 #
 # How it decides what to fetch:
 #   1. Decode each era's client.js (the 2018–2020 clients hide strings as base64 in an
@@ -68,7 +69,7 @@ NO_EXPAND = %w[skins/ img/ audio/ skins/zombie/ skins/winter/ skins/santa/ skins
 # ───────────────────────────── options ─────────────────────────────
 
 opts = { eras: [], only: CATEGORIES, concurrency: 65, strict: false, probe: true,
-         refresh: false, force: false, dry: false, everything: false, stats: false }
+         refresh: false, force: false, dry: false, everything: false, stats: false, manifest: false }
 OptionParser.new do |o|
   o.banner = "Usage: ruby fetch_era_assets.rb [options]"
   o.on("--era YEAR") { |v| opts[:eras] << v }
@@ -81,6 +82,7 @@ OptionParser.new do |o|
   o.on("--dry-run") { opts[:dry] = true }
   o.on("--everything") { opts[:everything] = true }
   o.on("--stats") { opts[:stats] = true }
+  o.on("--manifest") { opts[:manifest] = true }
   o.on("-h", "--help") { puts File.read(__FILE__)[/^# fetch_era_assets.*?(?=^require)/m].gsub(/^# ?/, ""); exit }
 end.parse!
 
@@ -514,6 +516,34 @@ end
 
 # ───────────────────────────── main ─────────────────────────────
 
+# Count what each era folder holds on disk, per category, for the era selector (index.html).
+def write_manifest
+  eras = ERAS.map do |year, cfg|
+    dir = File.join(ROOT, cfg[:folder])
+    counts = CATEGORIES.to_h { |c| [c, 0] }
+    bytes = 0
+    if File.directory?(dir)
+      Dir.glob("**/*", File::FNM_DOTMATCH, base: dir).each do |rel|
+        next if rel.start_with?("http:") || rel.split("/").any? { |seg| seg.start_with?(".") }
+        path = File.join(dir, rel)
+        next unless File.file?(path)
+        counts[category(rel)] += 1
+        bytes += File.size(path)
+      end
+    end
+    { "year" => year, "folder" => cfg[:folder], "counts" => counts,
+      "total" => counts.values.sum, "bytes" => bytes }
+  end
+  out = { "generated" => Time.now.utc.strftime("%Y-%m-%dT%H:%M:%SZ"), "categories" => CATEGORIES, "eras" => eras }
+  File.write(File.join(ROOT, "eras-manifest.json"), JSON.pretty_generate(out) + "\n")
+  log "🗂  eras-manifest.json: " + eras.map { |e| "#{e['year']} #{e['total']}" }.join(", ")
+end
+
+if opts[:manifest]
+  write_manifest
+  exit
+end
+
 index = cdx_index(opts)
 
 if opts[:stats]
@@ -556,3 +586,5 @@ unless opts[:dry]
     log "  #{r['era']}: #{parts.empty? ? 'nothing missing' : parts.join(', ')}"
   end
 end
+
+write_manifest unless opts[:dry]
