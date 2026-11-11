@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<style type="text/css">
+  body {
+    background-color: #3FBA54;
+  }
+
+  hr {
+    height: 1px;
+    border: 0px;
+    background: #ffffff;
+  }
+</style>
+<head>
+<title>mope.io</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<meta name="description" content="Survive and climb the food chain in mopeio, the hit browser game!">
+<meta name="keywords" content="mope, mope.io, mopeio,io games, .io, spaceships, browser game, html game, html5 game, agario, diepio, flash game, space, multiplayer">
+<meta http-equiv="content-type" content="text/html; charset=utf-8">
+<meta name="google-site-verification" content="HjdDaF_uw12IxXRm3hOS03tqv9QW8Lj5b74mlJGsRz0" />
+<meta property="og:image" content="http://mope.io/img/share_banner.jpg">
+<meta property="og:image:type" content="image/jpg">
+<meta property="og:image:width" content="1263">
+<meta property="og:image:height" content="707">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="robots" content="index, follow">
+<meta name="revisit-after" content="3 days">
+<meta name="googlebot" content="all">
+<meta name="twitter:card" content="summary_large_image">
+
+<link rel="stylesheet" href="main.css" />
+<link rel="shortcut icon" type="image/x-icon" href="favicon.ico" />
+<script data-cfasync="false" type="text/javascript">
+    var num = Math.floor(Math.random() * 100 + 1); //1 to 10
+    var abTestFreeStar = false; //num > 75; //1/4 the time
+    console.log("---Banners by " + (abTestFreeStar ? "FREESTAR" : "CURSE"));
+
+    if (!abTestFreeStar) {
+
+      /*setInterval(
+        function() {
+          document.getElementById("moneyRectBottom").style.width = "728px"; //shrink for curse
+        }, 1);*/
+
+
+
+      //<!-- curse ads script 1) -->
+      var script = document.createElement('script');
+      var tstamp = new Date();
+      script.id = 'factorem';
+      script.src = '//cdm.cursecdn.com/js/mope/cdmfactorem_min.js?sec=home&misc=' + tstamp.getTime();
+      script.async = false;
+      script.type = 'text/javascript';
+      document.head.appendChild(script);
+    } else {
+
+
+      //<!-- FREESTAR .io PLACE THIS SECTION INSIDE OF YOUR HEAD TAGS -->
+      var freestar = freestar || {};
+      freestar.hitTime = Date.now();
+      freestar.queue = freestar.queue || [];
+      freestar.config = freestar.config || {};
+      freestar.debug = window.location.search.indexOf('fsdebug') === -1 ? false : true;
+
+      // Tag IDs set here, must match Tags served in the Body for proper setup
+      freestar.config.enabled_slots = [
+        "mope_300x250_336x280_top",
+        "mope_970x90_728x90_bottom"
+      ];
+
+      ! function(a, b) {
+        var c = b.getElementsByTagName("script")[0],
+          d = b.createElement("script"),
+          e = "https://a.pub.network/mope-io";
+        e += freestar.debug ? "/qa/pubfig.min.js" : "/pubfig.min.js", d.async = !0, d.src = e, c.parentNode.insertBefore(d, c)
+      }(window, document);
+    }
+  </script>
+<script src="/adblockdet/ads.js"></script>
+</head>
+<body>
+<div id="gameAreaWrapper">
+<input id="chatinput" type="text" class="chat-input" placeholder="Chat here..." maxlength="35" />
+<canvas tabindex="1" id="gCanvas"></canvas>
+</div>
+<div id="connecting" style="height:150px;">
+<div style="height:100px;width:100px;margin: 0 auto;">
+<img class="conimg" src="skins/mouse.png" width="100px" />
+</div>
+<p>Connecting...</p>
+</div>
+
+<div id="preroll" class="vidAd"></div>
+
+<div id="pvVidContainer" class="vidAd" style="width:640px;height:360px; display:none;">
+</div>
+<div>
+<div id="my-content-2" style="display:none; visibility:hidden;">
+</div>
+</div>
+<div id="startMenuWrapper">
+<div id="startMenu">
+<img id="logo" src="img/logo.png" width="350px" height="99px" />
+<div id="onconnectDiv" style="visibility:hidden;">
+<br />
+
+<div id="nickInputContainer" style="display: block;">
+<input id="nickInput" autofocus placeholder="Your name" maxlength="15" style="width: 100%; height: 40px; line-height: 36px;">
+</div>
+<button id="settingsButton" class="button" type="submit" style="background-color:transparent; border-color:transparent;">
+<img src="img/settings.png" width=30 height=30 />
+</button>
+<button id="button_mute" class="button" type="submit" style="background-color:transparent; border-color:transparent;">
+<img id="button_mute_img" src="img/sound_on.png" width=30 height=30 />
+</button>
+<a>
+<button id="startButton">Play</button>
+</a>
+<p id="spawnXpLabel">
+</p>
+</div>
+<div id="optionsDiv">
+<button id="closeBut" type="submit" class="button" style="background-color:transparent; border-color:transparent;">
+<img src="img/x.png" width=35 height=35 />
+</button>
+<h3>Region/Server:</h3>
+<select id="regionSelect">
+<option>
+Finding Best Region...
+</option>
+</select>
+<select id="serverSelect">
+<option>
+Finding Server...
+</option>
+</select>
+<h3>Options:</h3>
+<div id="optionsContainer">
+</div>
+</div>
+
+<div id="moneyRectangle">
+<img id="blockedImg" src="img/blocked.png" style="display:none;" width="300" height="auto" alt="Please disable your adblocker!" />
+
+<div align="center" id="mope_300x250_336x280_top">
+<script data-cfasync="false" type="text/javascript">
+            if (abTestFreeStar) {
+
+              freestar.queue.push(function() {
+                googletag.display('mope_300x250_336x280_top');
+              });
+
+            }
+          </script>
+</div>
+
+<div id="cdm-zone-02"></div>
+</div>
+
+</div>
+<div id="updates">
+<div id="updatesDiv">
+<h2>Update (Aug 1): </h2>
+<ul>
+<li>Fixed upgrade message bugs</li>
+<li>New stuff coming soon!</li>
+</ul>
+<h2>Update (June 19): </h2>
+<ul>
+<li>New: Toucan bird with 5 species</li>
+<img src="skins/toucan/0/toucan.png" width="50" />
+<img src="skins/toucan/1/toucan.png" width="50" />
+<img src="skins/toucan/2/toucan.png" width="50" />
+<img src="skins/toucan/3/toucan.png" width="50" />
+<img src="skins/toucan/4/toucan.png" width="50" />
+<li>Toucans can throw fruit upon landing- start your flight from a fruit tree or bush. </li>
+<li>
+Toucans spawn as a random species (color), can sometimes (rare!) spawn as a lava toucan!
+</li>
+<li>
+Each Toucan species has unique properties- (Rare Lava Toucan is immune to lava and can throw fireballs as extra skills!)
+</li>
+<li>New: Pigeon bird with 2 species</li>
+<img src="skins/pigeon/0/pigeon.png" width="50" />
+<img src="skins/pigeon/1/pigeon.png" width="50" />
+<li>Rarely, pigeons, (and one other animal) can spawn white-colored, and have improved skills!</li>
+<li>Fixed: 2x XP gain on bite/killing animals</li>
+<li>Fixed bugs, tweaked interface buttons on mobile</li>
+</ul>
+<h2>Update (June 6): Phoenix Update</h2>
+<ul>
+<li>
+New: Phoenix - The Fire Bird<br />
+<img src="./skins/phoenix/phoenix.png" width="100" height="100" /><br /> Phoenix is the Apex tier animal. Drinks lava, shoots Fire Tornados to burn enemies alive. Phoenix is good on muds/lands and has same boost as Ostrich. But its very slow
+in waters.
+</li>
+<li>
+New: Fire Tornado<br />
+<img src="./img/firetornado.png" width="50" height="50" />
+<br /> Shoots fireballs every 2s to animals near it. It swirl slowly around and tend to get close to animals to shoot perfectly. Can be killed if shot water directly or goes inside any water body!
+</li>
+<li>
+New: Honeybee & Beehive<br />
+<img src="./skins/honeybee/honeybeee.png" width="70" height="70" />
+<img src="./img/beehive.png" width="50" height="50" style="margin-bottom:10px" />
+<br /> On touching beehives, honeybees spawn and chase the offender to sting them.
+</li>
+</ul>
+<h2>Bug fixing:</h2>
+<ul>
+<li>Nerf: Hedgehog Quills wont hurt 2 tiers higher predators. (BD is safe again!)</li>
+<li>Fixed: Hedgehog wasnt shooting quills.</li>
+<li>Fixed: Mole, Turtle charge bug.</li>
+</ul>
+<h2>Extra:</h2>
+<ul>
+<li>New: Ostrich can command babies to bite killable foods and give xp to mommy (also heal mommy from healing stone)</li>
+<li>New: Apex tier can 1v1 with each other with respect to their biomes.</li>
+</ul>
+</div>
+<div id="ytDiv">
+<h2>
+Tell us your ideas/bugs on reddit:<br />
+<a href="https://www.reddit.com/r/mopeio/" target="_blank">REDDIT PAGE</a>
+</h2>
+<a href="http://www.mope.io/updates.txt" target="_blank">CHANGELOG</a>-
+<a href="https://goo.gl/3ViH9K" target="_blank">IO GAMES</a>
+<br />
+<div id="ytButton" style="margin-top: 7px;">
+<script src="https://apis.google.com/js/platform.js"></script>
+<div class="g-ytsubscribe" data-channelid="UCNfK9bZk3Br2KDjXXdKuM1g" data-layout="default" data-theme="dark" data-count="default"></div>
+</div>
+</div>
+</div>
+<div id="rightSide">
+<div id="appsDiv">
+<a id="appAdIOS" href="https://goo.gl/ofAUPJ" target="_blank">
+<img src="./img/appAd_ios.png" width="132" height="82" alt="GET THE IOS APP!" />
+</a>
+<a id="appAdAndroid" href="https://goo.gl/i3xQWQ" target="_blank">
+<img src="./img/appAd_and.png" width="132" height="52" alt="GET THE Android APP!" />
+</a>
+</div>
+</div>
+<div id="moneyRectBottomWrap">
+<div id="moneyRectBottom">
+
+
+<div align="center" id="mope_970x90_728x90_bottom">
+<script data-cfasync="false" type="text/javascript">
+            if (abTestFreeStar) {
+              freestar.queue.push(function() {
+                googletag.display('mope_970x90_728x90_bottom');
+              });
+            }
+          </script>
+</div>
+
+<div id='cdm-zone-01'></div>
+</div>
+</div>
+</div>
+<script>
+    document.write("<script src='client.js?x=" + (+new Date()) + "'></" + "script>");
+  </script>
+
+<div id='cdm-zone-end'></div>
+</body>
+
+
+</html>
