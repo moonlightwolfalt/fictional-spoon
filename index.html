@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Era Selector</title>
+<style>
+  :root { --bg:#0e1a12; --fg:#f4f1e6; --accent:#7fd36b; }
+  html, body { margin:0; height:100%; background:var(--bg); color:var(--fg);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif; overflow:hidden; }
+  #selector { position:fixed; inset:0; width:100%; height:100%; display:block; cursor:default; }
+  #player { position:fixed; inset:0; display:none; background:#000; }
+  #player iframe { width:100%; height:100%; border:0; display:block; }
+  #bar { position:fixed; top:10px; left:10px; z-index:10; display:flex; gap:8px; }
+  #bar button, #bar a { font:600 13px system-ui, sans-serif; padding:7px 12px; border-radius:8px;
+    border:1px solid rgba(255,255,255,.25); background:rgba(14,26,18,.85); color:var(--fg);
+    cursor:pointer; text-decoration:none; backdrop-filter: blur(4px); }
+  #bar button:hover, #bar a:hover { background:rgba(40,70,48,.95); }
+</style>
+</head>
+<body>
+<canvas id="selector" aria-label="Era selector: use arrow keys or click a year, Enter to play"></canvas>
+
+<div id="player">
+  <div id="bar">
+    <button id="back" type="button">&larr; Eras</button>
+    <a id="newtab" target="_blank" rel="noopener">Open in new tab</a>
+  </div>
+  <iframe id="frame" title="Era client" allow="autoplay; fullscreen"></iframe>
+</div>
+
+<script>
+(() => {
+  const ERAS = [
+    { year: 2017, date: "4 Jul 2017",  folder: "mope_fixed_20170704", hue: 120, blurb: "The early days. Classic animals, classic chaos." },
+    { year: 2018, date: "11 Nov 2018", folder: "mope_fixed_20181111", hue: 28,  blurb: "Autumn update season. Pumpkins, phoenixes and bees." },
+    { year: 2019, date: "29 Oct 2019", folder: "mope_fixed_20191029", hue: 270, blurb: "Abilities everywhere. Desert biome and spooky skins." },
+    { year: 2020, date: "21 Mar 2020", folder: "mope_fixed_20200321", hue: 195, blurb: "Spring 2020 build, with menu and in-game music." },
+  ];
+
+  const canvas = document.getElementById("selector");
+  const ctx = canvas.getContext("2d");
+  const player = document.getElementById("player");
+  const frame = document.getElementById("frame");
+  const newtab = document.getElementById("newtab");
+
+  let W = 0, H = 0, DPR = 1;
+  let selected = 0, hovered = -1;
+  let anim = 0;                // eased selection position
+  let t = 0;
+  let launching = null;        // { idx, start }
+  let nodes = [];              // hit areas
+  let manifest = null;         // eras-manifest.json (asset counts per era), if present
+  let manifestState = "loading";
+  const CAT_LABELS = { animals: "Animals", skins: "Skins", abilities: "Abilities", modes: "Modes",
+                       objects: "Objects", audio: "Audio", ui: "Pages" };
+
+  fetch("eras-manifest.json", { cache: "no-store" })
+    .then(r => (r.ok ? r.json() : Promise.reject()))
+    .then(m => {
+      manifest = {
+        cats: m.categories,
+        byYear: Object.fromEntries(m.eras.map(e => [String(e.year), e])),
+        // Largest count per category across eras, so the bars compare eras.
+        max: Object.fromEntries(m.categories.map(c => [c, Math.max(1, ...m.eras.map(e => e.counts[c] || 0))])),
+        generated: m.generated,
+      };
+      manifestState = "ok";
+    })
+    .catch(() => { manifestState = "missing"; });
+
+  const fmtNum = n => n.toLocaleString("en-US");
+  const fmtBytes = b => b >= 1e9 ? (b / 1e9).toFixed(1) + " GB" : b >= 1e6 ? (b / 1e6).toFixed(1) + " MB" : Math.round(b / 1e3) + " KB";
+  let playBtn = null;
+
+  // Floating blobs in the background
+  const blobs = Array.from({ length: 40 }, () => ({
+    x: Math.random(), y: Math.random(),
+    r: 4 + Math.random() * 18,
+    s: 0.2 + Math.random() * 0.6,
+    p: Math.random() * Math.PI * 2,
+  }));
+
+  function resize() {
+    DPR = Math.min(window.devicePixelRatio || 1, 2);
+    W = window.innerWidth; H = window.innerHeight;
+    canvas.width = W * DPR; canvas.height = H * DPR;
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  }
+  window.addEventListener("resize", resize);
+  resize();
+
+  const lerp = (a, b, k) => a + (b - a) * k;
+  const eraColor = (i, l = 55, a = 1) => {
+    const lo = Math.floor(i), hi = Math.min(lo + 1, ERAS.length - 1), f = i - lo;
+    let h1 = ERAS[lo].hue, h2 = ERAS[hi].hue;
+    if (Math.abs(h2 - h1) > 180) h2 += h2 < h1 ? 360 : -360;
+    return `hsla(${(lerp(h1, h2, f) + 360) % 360}, 55%, ${l}%, ${a})`;
+  };
+
+  function roundRect(x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+
+  function wrapText(text, x, y, maxW, lh) {
+    const words = text.split(" ");
+    let line = "";
+    for (const w of words) {
+      const test = line ? line + " " + w : w;
+      if (ctx.measureText(test).width > maxW && line) {
+        ctx.fillText(line, x, y); line = w; y += lh;
+      } else line = test;
+    }
+    ctx.fillText(line, x, y);
+  }
+
+  function draw() {
+    t += 1 / 60;
+    anim = lerp(anim, selected, 0.12);
+    const small = W < 600;
+
+    // Background gradient tinted by current era
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, eraColor(anim, 14));
+    g.addColorStop(1, eraColor(anim, 6));
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+
+    // Drifting blobs
+    for (const b of blobs) {
+      const bx = ((b.x * W + t * 12 * b.s) % (W + 40)) - 20;
+      const by = b.y * H + Math.sin(t * b.s + b.p) * 14;
+      ctx.fillStyle = eraColor(anim, 45, 0.08);
+      ctx.beginPath(); ctx.arc(bx, by, b.r, 0, Math.PI * 2); ctx.fill();
+    }
+
+    // Title
+    ctx.textAlign = "center";
+    ctx.fillStyle = "#f4f1e6";
+    ctx.font = `800 ${small ? 28 : 44}px system-ui, sans-serif`;
+    ctx.fillText("Choose your era", W / 2, H * 0.14);
+    ctx.font = `500 ${small ? 13 : 15}px system-ui, sans-serif`;
+    ctx.fillStyle = "rgba(244,241,230,.65)";
+    ctx.fillText("← → to pick  ·  Enter to play", W / 2, H * 0.14 + (small ? 24 : 32));
+
+    // Timeline
+    const pad = Math.max(40, W * 0.12);
+    const lineY = H * 0.36;
+    const span = W - pad * 2;
+    ctx.strokeStyle = "rgba(244,241,230,.25)";
+    ctx.lineWidth = 4; ctx.lineCap = "round";
+    ctx.beginPath(); ctx.moveTo(pad, lineY); ctx.lineTo(W - pad, lineY); ctx.stroke();
+
+    // Progress along timeline
+    const cx = pad + span * (anim / (ERAS.length - 1));
+    ctx.strokeStyle = eraColor(anim, 62);
+    ctx.beginPath(); ctx.moveTo(pad, lineY); ctx.lineTo(cx, lineY); ctx.stroke();
+
+    nodes = [];
+    ERAS.forEach((era, i) => {
+      const x = pad + span * (i / (ERAS.length - 1));
+      const near = Math.max(0, 1 - Math.abs(anim - i));
+      const r = 12 + near * 10 + (hovered === i ? 3 : 0) + Math.sin(t * 3 + i) * near * 1.5;
+      ctx.fillStyle = i <= anim + 0.01 ? `hsl(${era.hue},55%,60%)` : "rgba(244,241,230,.3)";
+      ctx.beginPath(); ctx.arc(x, lineY, r, 0, Math.PI * 2); ctx.fill();
+      if (near > 0.5) {
+        ctx.strokeStyle = `hsla(${era.hue},60%,75%,${near * 0.6})`;
+        ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(x, lineY, r + 8 + Math.sin(t * 4) * 2, 0, Math.PI * 2); ctx.stroke();
+      }
+      ctx.fillStyle = `rgba(244,241,230,${0.55 + near * 0.45})`;
+      ctx.font = `${near > 0.5 ? 800 : 600} ${small ? 15 : 18 + near * 6}px system-ui, sans-serif`;
+      ctx.fillText(String(era.year), x, lineY + (small ? 44 : 54));
+      const info = manifest && manifest.byYear[era.year];
+      if (info) {
+        ctx.font = `500 ${small ? 11 : 12}px system-ui, sans-serif`;
+        ctx.fillStyle = `rgba(244,241,230,${0.4 + near * 0.35})`;
+        ctx.fillText(fmtNum(info.total) + " files", x, lineY + (small ? 62 : 76));
+      }
+      nodes.push({ i, x: x - 40, y: lineY - 40, w: 80, h: 110 });
+    });
+
+    // Era card
+    const era = ERAS[selected];
+    const cw = Math.min(560, W - 32), ch = small ? 330 : 318;
+    const cxp = (W - cw) / 2, cyp = Math.max(lineY + 96, Math.min(H * 0.5, H - ch - 16));
+    const bob = Math.sin(t * 1.6) * 3;
+    ctx.save();
+    ctx.translate(0, bob);
+    ctx.shadowColor = "rgba(0,0,0,.35)"; ctx.shadowBlur = 30; ctx.shadowOffsetY = 10;
+    ctx.fillStyle = "rgba(244,241,230,.08)";
+    roundRect(cxp, cyp, cw, ch, 20); ctx.fill();
+    ctx.shadowColor = "transparent";
+    ctx.strokeStyle = `hsla(${era.hue},55%,60%,.6)`; ctx.lineWidth = 2;
+    roundRect(cxp, cyp, cw, ch, 20); ctx.stroke();
+
+    ctx.textAlign = "left";
+    ctx.fillStyle = `hsl(${era.hue},60%,70%)`;
+    ctx.font = `900 ${small ? 40 : 52}px system-ui, sans-serif`;
+    ctx.fillText(String(era.year), cxp + 24, cyp + (small ? 54 : 64));
+    ctx.fillStyle = "rgba(244,241,230,.7)";
+    ctx.font = "600 14px system-ui, sans-serif";
+    ctx.fillText("Snapshot · " + era.date, cxp + 24, cyp + (small ? 80 : 92));
+    ctx.fillStyle = "#f4f1e6";
+    ctx.font = "400 16px system-ui, sans-serif";
+    wrapText(era.blurb, cxp + 24, cyp + (small ? 108 : 124), cw - 48, 22);
+
+    // Asset counts per category
+    const gx = cxp + 24, gy = cyp + (small ? 168 : 160), gw = cw - 48;
+    const info = manifest && manifest.byYear[era.year];
+    if (info) {
+      const cols = 4, cellW = gw / cols, cellH = 46;
+      manifest.cats.forEach((c, k) => {
+        const x = gx + (k % cols) * cellW, y = gy + Math.floor(k / cols) * cellH;
+        const n = info.counts[c] || 0;
+        ctx.fillStyle = "rgba(244,241,230,.6)";
+        ctx.font = `600 ${small ? 10 : 11}px system-ui, sans-serif`;
+        ctx.fillText((CAT_LABELS[c] || c).toUpperCase(), x, y);
+        ctx.fillStyle = n ? "#f4f1e6" : "rgba(244,241,230,.35)";
+        ctx.font = `800 ${small ? 16 : 18}px system-ui, sans-serif`;
+        ctx.fillText(fmtNum(n), x, y + 20);
+        const bw = cellW - 14, frac = n / manifest.max[c];
+        ctx.fillStyle = "rgba(244,241,230,.12)";
+        roundRect(x, y + 27, bw, 4, 2); ctx.fill();
+        if (n) {
+          ctx.fillStyle = `hsl(${era.hue},60%,62%)`;
+          roundRect(x, y + 27, Math.max(4, bw * frac), 4, 2); ctx.fill();
+        }
+      });
+      ctx.fillStyle = "rgba(244,241,230,.55)";
+      ctx.font = "500 12px system-ui, sans-serif";
+      ctx.fillText(`${fmtNum(info.total)} files \u00b7 ${fmtBytes(info.bytes)}`, gx, cyp + ch - 34);
+      if (info.borrowed) {
+        ctx.fillStyle = `hsla(${era.hue},60%,72%,.85)`;
+        ctx.fillText(`${fmtNum(info.borrowed)} borrowed from other eras`, gx, cyp + ch - 16);
+      }
+    } else {
+      ctx.fillStyle = "rgba(244,241,230,.5)";
+      ctx.font = "500 13px system-ui, sans-serif";
+      wrapText(manifestState === "loading" ? "Counting assets\u2026"
+        : "No asset counts yet. Run: ruby fetch_era_assets.rb --manifest", gx, gy + 10, gw, 18);
+    }
+
+    // Play button
+    const bw = 150, bh = 44, bx = cxp + cw - bw - 20, by = cyp + ch - bh - 18;
+    const pulse = launching ? 1 : 1 + Math.sin(t * 4) * 0.03;
+    ctx.save();
+    ctx.translate(bx + bw / 2, by + bh / 2); ctx.scale(pulse, pulse);
+    ctx.fillStyle = `hsl(${era.hue},55%,${hovered === "play" ? 58 : 50}%)`;
+    roundRect(-bw / 2, -bh / 2, bw, bh, 12); ctx.fill();
+    ctx.fillStyle = "#fff"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.font = "800 17px system-ui, sans-serif";
+    ctx.fillText("▶  Play " + era.year, 0, 1);
+    ctx.restore();
+    ctx.textBaseline = "alphabetic";
+    playBtn = { x: bx, y: by + bob, w: bw, h: bh };
+    ctx.restore();
+
+    // Launch transition: expanding circle
+    if (launching) {
+      const k = Math.min(1, (performance.now() - launching.start) / 450);
+      ctx.fillStyle = `hsl(${ERAS[launching.idx].hue},40%,8%)`;
+      ctx.beginPath();
+      ctx.arc(W / 2, H / 2, Math.hypot(W, H) * k * k, 0, Math.PI * 2);
+      ctx.fill();
+      if (k >= 1) { openEra(launching.idx); launching = null; }
+    }
+
+    if (player.style.display !== "block") requestAnimationFrame(draw);
+  }
+
+  function select(i) { selected = (i + ERAS.length) % ERAS.length; }
+
+  function launch() {
+    if (!launching) launching = { idx: selected, start: performance.now() };
+  }
+
+  function openEra(i) {
+    const url = ERAS[i].folder + "/index.html";
+    frame.src = url;
+    newtab.href = url;
+    player.style.display = "block";
+    canvas.style.display = "none";
+    try { history.replaceState(null, "", "#" + ERAS[i].year); } catch (_) {}
+    frame.focus();
+  }
+
+  function closeEra() {
+    frame.src = "about:blank";
+    player.style.display = "none";
+    canvas.style.display = "block";
+    try { history.replaceState(null, "", location.pathname); } catch (_) {}
+    requestAnimationFrame(draw);
+  }
+  document.getElementById("back").addEventListener("click", closeEra);
+
+  function hit(mx, my) {
+    if (playBtn && mx >= playBtn.x && mx <= playBtn.x + playBtn.w && my >= playBtn.y && my <= playBtn.y + playBtn.h) return "play";
+    for (const n of nodes) if (mx >= n.x && mx <= n.x + n.w && my >= n.y && my <= n.y + n.h) return n.i;
+    return -1;
+  }
+
+  canvas.addEventListener("mousemove", e => {
+    hovered = hit(e.clientX, e.clientY);
+    canvas.style.cursor = hovered === -1 ? "default" : "pointer";
+  });
+  canvas.addEventListener("click", e => {
+    const h = hit(e.clientX, e.clientY);
+    if (h === "play") launch();
+    else if (h !== -1) { if (h === selected) launch(); else select(h); }
+  });
+
+  // Swipe on touch
+  let tx = null;
+  canvas.addEventListener("touchstart", e => { tx = e.touches[0].clientX; }, { passive: true });
+  canvas.addEventListener("touchend", e => {
+    if (tx === null) return;
+    const dx = e.changedTouches[0].clientX - tx;
+    if (Math.abs(dx) > 50) select(selected + (dx < 0 ? 1 : -1));
+    tx = null;
+  });
+
+  window.addEventListener("keydown", e => {
+    if (player.style.display === "block") {
+      if (e.key === "Escape" && e.shiftKey) closeEra();   // Shift+Esc returns to selector
+      return;
+    }
+    if (e.key === "ArrowRight" || e.key === "d") select(selected + 1);
+    else if (e.key === "ArrowLeft" || e.key === "a") select(selected - 1);
+    else if (e.key === "Enter" || e.key === " ") { e.preventDefault(); launch(); }
+    else if (/^[1-4]$/.test(e.key)) select(+e.key - 1);
+  });
+
+  // Deep link: index.html#2019 opens that era directly
+  const fromHash = ERAS.findIndex(e => "#" + e.year === location.hash);
+  if (fromHash >= 0) { selected = fromHash; anim = fromHash; openEra(fromHash); }
+  else requestAnimationFrame(draw);
+})();
+</script>
+</body>
+</html>
