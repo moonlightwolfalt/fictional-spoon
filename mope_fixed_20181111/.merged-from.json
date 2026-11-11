@@ -84,7 +84,7 @@
     "sha1": "822ab9c9f5a56e70353a7ee0828f2f7bab0c6f72"
   },
   "audio/click.mp3": {
-    "from": "2020",
+    "from": "2019",
     "sha1": "f7a6385fe5a595f2e8287c2d06f1d14f7d455576"
   },
   "audio/music_game.mp3": {
@@ -204,7 +204,7 @@
     "sha1": "07ed223a7877af517579d60f6020a25b7b69028c"
   },
   "img/appAd_ios.png": {
-    "from": "2019",
+    "from": "2018/LIVETEST541",
     "sha1": "d720b5cb1d8102e209f2349e39f7161ee0fe6a53"
   },
   "img/beehive_e.png": {
@@ -291,9 +291,21 @@
     "from": "2019",
     "sha1": "61845c5f084dabd85a4bcc8162f2da0dde060ba8"
   },
+  "img/logo.png": {
+    "from": "2019",
+    "sha1": "7566ec2eed82c00d214fc5d56559327b7882ceb7"
+  },
+  "img/moomoo_promo.png": {
+    "from": "2019",
+    "sha1": "edbb62ab7cda3307483944eddc559674fe5381c2"
+  },
   "img/ostrichEgg_e.png": {
     "from": "2019",
     "sha1": "e6fb835581d01be34852e33e4c3254d32d021c9c"
+  },
+  "img/promoimg2.png": {
+    "from": "2019",
+    "sha1": "8eb035bd168964501fa417e5b7562cd2846a3f93"
   },
   "img/riverCurrent.png": {
     "from": "2019",
@@ -306,6 +318,10 @@
   "img/rockhill.png": {
     "from": "2019",
     "sha1": "8460a5b6099a2ae33202c172126658c9bd09af09"
+  },
+  "img/settings.png": {
+    "from": "2019",
+    "sha1": "950a6b1667e0980914cb9e08f07da83ccfe7b215"
   },
   "img/sound_on.png": {
     "from": "2019",

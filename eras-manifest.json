@@ -1,5 +1,5 @@
 {
-  "generated": "2026-11-11T15:03:55Z",
+  "generated": "2026-11-11T18:00:03Z",
   "categories": [
     "animals",
     "skins",
@@ -18,13 +18,13 @@
         "skins": 67,
         "abilities": 18,
         "modes": 3,
-        "objects": 82,
+        "objects": 86,
         "audio": 7,
         "ui": 19
       },
-      "total": 268,
-      "bytes": 6572408,
-      "borrowed": 178
+      "total": 272,
+      "bytes": 6689259,
+      "borrowed": 182
     },
     {
       "year": "2018",
@@ -34,13 +34,13 @@
         "skins": 67,
         "abilities": 18,
         "modes": 3,
-        "objects": 82,
+        "objects": 86,
         "audio": 7,
         "ui": 34
       },
-      "total": 283,
-      "bytes": 7099745,
-      "borrowed": 243
+      "total": 287,
+      "bytes": 7216596,
+      "borrowed": 247
     },
     {
       "year": "2019",
@@ -50,13 +50,13 @@
         "skins": 67,
         "abilities": 20,
         "modes": 5,
-        "objects": 82,
+        "objects": 86,
         "audio": 7,
         "ui": 144
       },
-      "total": 397,
-      "bytes": 7596160,
-      "borrowed": 43
+      "total": 401,
+      "bytes": 7706979,
+      "borrowed": 47
     },
     {
       "year": "2020",
@@ -66,13 +66,13 @@
         "skins": 67,
         "abilities": 18,
         "modes": 3,
-        "objects": 82,
+        "objects": 86,
         "audio": 8,
         "ui": 15
       },
-      "total": 265,
-      "bytes": 7075487,
-      "borrowed": 255
+      "total": 269,
+      "bytes": 7186306,
+      "borrowed": 259
     }
   ]
 }

@@ -1,0 +1,105 @@
+# Runs the Wayback asset fetcher on GitHub's runners (which can reach web.archive.org),
+# fills remaining gaps from the other eras, and opens a pull request with the results.
+#
+# Start it from the Actions tab: "Fetch era assets" -> Run workflow.
+name: Fetch era assets
+
+on:
+  workflow_dispatch:
+    inputs:
+      eras:
+        description: "Eras to fetch (space-separated)"
+        default: "2017 2018 2019 2020"
+        required: true
+      only:
+        description: "Categories (comma-separated, blank = all): animals,skins,abilities,modes,objects,audio,ui"
+        default: ""
+        required: false
+      concurrency:
+        description: "Download threads (Wayback may throttle high values)"
+        default: "65"
+        required: true
+      everything:
+        description: "Give every era every archived image/sound, whatever its capture date"
+        type: boolean
+        default: false
+      refresh_index:
+        description: "Rebuild the Wayback CDX index instead of using the cached one"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: fetch-era-assets
+  cancel-in-progress: false
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    env:
+      LANG: C.UTF-8
+      ERAS: ${{ inputs.eras }}
+      ONLY: ${{ inputs.only }}
+      THREADS: ${{ inputs.concurrency }}
+      EVERYTHING: ${{ inputs.everything }}
+      REFRESH_INDEX: ${{ inputs.refresh_index }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+
+      # The all-time CDX index is large and slow to build; keep it between runs.
+      - name: Restore CDX index cache
+        uses: actions/cache@v4
+        with:
+          path: .cache
+          key: cdx-index-${{ github.run_id }}
+          restore-keys: cdx-index-
+
+      - name: Index stats
+        run: |
+          ARGS=()
+          [ "$REFRESH_INDEX" = "true" ] && ARGS+=(--refresh-index)
+          ruby fetch_era_assets.rb --stats "${ARGS[@]}"
+
+      - name: Fetch assets
+        run: |
+          ARGS=(--concurrency "$THREADS")
+          for e in $ERAS; do ARGS+=(--era "$e"); done
+          [ -n "$ONLY" ] && ARGS+=(--only "$ONLY")
+          [ "$EVERYTHING" = "true" ] && ARGS+=(--everything)
+          ruby fetch_era_assets.rb "${ARGS[@]}" 2>&1 | tee fetch.log
+          # Keep the per-era summary for the PR body.
+          sed -n '/━━━ summary ━━━/,$p' fetch.log > summary.txt
+
+      - name: Fill remaining gaps from other eras
+        run: ruby merge_eras.rb | grep -v '^  ' | tee -a summary.txt
+
+      - name: Upload reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fetch-reports
+          path: |
+            fetch.log
+            mope_fixed_*/.assets-report.json
+          if-no-files-found: ignore
+          include-hidden-files: true
+
+      - name: Open pull request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          branch: assets/fetch-${{ github.run_id }}
+          commit-message: "Fetch era assets from the Wayback Machine (run ${{ github.run_id }})"
+          title: "Fetch era assets (run ${{ github.run_id }})"
+          body-path: summary.txt
+          add-paths: |
+            mope_fixed_*/**
+            eras-manifest.json
+          delete-branch: true

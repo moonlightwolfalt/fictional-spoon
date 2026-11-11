@@ -300,8 +300,8 @@
     "sha1": "ef0e3d1aac397acd5081169cbfe70cc3d2763a8a"
   },
   "img/firetornado.png": {
-    "from": "2018",
-    "sha1": "a1647fd9403caa21e23ce8f859ab3ad65acfe99c"
+    "from": "2019",
+    "sha1": "87ca204b735e3de86fbf10e59123e5d14425e26f"
   },
   "img/healingStone.png": {
     "from": "2018",
@@ -327,9 +327,21 @@
     "from": "2019",
     "sha1": "61845c5f084dabd85a4bcc8162f2da0dde060ba8"
   },
+  "img/logo.png": {
+    "from": "2019",
+    "sha1": "7566ec2eed82c00d214fc5d56559327b7882ceb7"
+  },
+  "img/moomoo_promo.png": {
+    "from": "2019",
+    "sha1": "edbb62ab7cda3307483944eddc559674fe5381c2"
+  },
   "img/ostrichEgg_e.png": {
     "from": "2019",
     "sha1": "e6fb835581d01be34852e33e4c3254d32d021c9c"
+  },
+  "img/promoimg2.png": {
+    "from": "2019",
+    "sha1": "8eb035bd168964501fa417e5b7562cd2846a3f93"
   },
   "img/riverCurrent.png": {
     "from": "2019",
@@ -342,6 +354,10 @@
   "img/rockhill.png": {
     "from": "2019",
     "sha1": "8460a5b6099a2ae33202c172126658c9bd09af09"
+  },
+  "img/settings.png": {
+    "from": "2019",
+    "sha1": "950a6b1667e0980914cb9e08f07da83ccfe7b215"
   },
   "img/sound_on.png": {
     "from": "2019",
